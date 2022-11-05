@@ -1,3 +1,4 @@
+# HADOOP
 bash docker-deploy-hdp30.sh C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-hdfs
 docker ps
 docker ps -a
@@ -8,3 +9,13 @@ docker exec -it cf055 bash
 ambari-admin-password-reset
 admin
 admin
+
+# NIFI
+
+bash docker-deploy-hdf311.sh C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka
+docker ps
+docker ps -a
+
+# Setting admin ambari user and password
+docker ps 
+docker exec -it cf055 bash
