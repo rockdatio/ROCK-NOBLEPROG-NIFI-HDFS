@@ -3,7 +3,7 @@
 set -x
 
 # HERE YOU SHOULD CHOOSE A ABSSOLUTE PATH FROM YOUR COMPUTER
-#mountSource="C:/workspace/nifi/cloudera/hortonworks-hdfs/data"
+#mountSource="C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka/"
 #mountSink="/tmp/data"
 mountSource=$1
 mountSink="/tmp/data"
