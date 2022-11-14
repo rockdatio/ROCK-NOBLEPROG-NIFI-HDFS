@@ -29,6 +29,12 @@
 
         The 'Username' will be a random UUID and the 'Password' will be stored using bcrypt hashing
     -->
+    <provider>
+        <identifier>single-user-provider</identifier>
+        <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+        <property name="Username"/>
+        <property name="Password"/>
+    </provider>
     <!--
         Identity Provider for users logging in with username/password against an LDAP server.
         
@@ -119,34 +125,4 @@
         <property name="Authentication Expiration">12 hours</property>
     </provider>
     To enable the kerberos-provider remove 2 lines. This is 2 of 2. -->
-	
-	<provider>
-		<identifier>ldap-provider</identifier>
-		<class>org.apache.nifi.ldap.LdapProvider</class>
-		<property name="Authentication Strategy">SIMPLE</property>
-
-		<property name="Manager DN">uid=admin,ou=system</property>
-		<property name="Manager Password">secret</property>
-
-		<property name="TLS - Keystore"></property>
-		<property name="TLS - Keystore Password"></property>
-		<property name="TLS - Keystore Type"></property>
-		<property name="TLS - Truststore"></property>
-		<property name="TLS - Truststore Password"></property>
-		<property name="TLS - Truststore Type"></property>
-		<property name="TLS - Client Auth"></property>
-		<property name="TLS - Protocol"></property>
-		<property name="TLS - Shutdown Gracefully"></property>
-
-		<property name="Referral Strategy">FOLLOW</property>
-		<property name="Connect Timeout">10 secs</property>
-		<property name="Read Timeout">10 secs</property>
-
-		<property name="Url">ldap://localhost:8091</property>
-		<property name="User Search Base">ou=people,dc=nifi,dc=com</property>
-		<property name="User Search Filter">uid={0}</property>
-
-		<property name="Identity Strategy">USE_DN</property>
-		<property name="Authentication Expiration">12 hours</property>
-	</provider>
 </loginIdentityProviders>

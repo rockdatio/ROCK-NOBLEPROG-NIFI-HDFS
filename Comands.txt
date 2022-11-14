@@ -12,7 +12,7 @@ admin
 
 # NIFI
 
-bash docker-deploy-hdf311.sh C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka
+bash docker-deploy-hdf311.sh C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka/
 docker ps
 docker ps -a
 
