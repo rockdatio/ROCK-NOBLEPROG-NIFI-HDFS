@@ -1,0 +1,6 @@
+./Installation-nifi-cluster/nifi/*
+./Installation-nifi-cluster/nifi_registry/*
+./Installation-nifi-cluster/nifi2/*
+./Installation-nifi-cluster/nifi/
+./Installation-nifi-cluster/nifi_registry/
+./Installation-nifi-cluster/nifi2/
