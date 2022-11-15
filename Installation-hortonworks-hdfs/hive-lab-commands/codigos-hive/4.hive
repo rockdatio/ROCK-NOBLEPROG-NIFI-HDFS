@@ -1,0 +1,47 @@
+/**
+ * @section Permisos sobre HIVE
+ */
+
+-- ¿Cómo se dan permisos sobre las tablas de HIVE?
+-- Realmente no se dan permisos sobre HIVE, sino sobre HDFS
+-- Recordemos que por debajo todo se almacena sobre HDFS
+-- Podemos usar los comandos "chown" y "chmod"
+-- Por ejemplo, la tabla:
+--
+-- MIUSUARIO_TEST3.PERSONA_PARQUET_SNAPPY
+--
+-- Tiene como ruta HDFS asociada:
+-- /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- Si queremos cambiar de dueño a la tabla, debemos de cambiar el dueño de la carpeta
+-- Por ejemplo, si queremos que el nuevo dueño de la tabla sea el usuario "alumno":
+hdfs dfs -chown -R alumno:alumno /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- También podemos cambiar los permisos de acceso
+-- Por ejemplo, si queremos que sólo el usuario dueño tenga permisos de lectura y escritura, y el resto de usuarios sólo de lectura, hacemos:
+hdfs dfs -chmod -R 755 /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- Sin embargo, ¿cómo podemos hacer para ejecutar estas intrucciones:
+--
+-- El usuario1 tenga accesos de lectura
+-- El usuario2 tenga accesos de lectura y escritura
+-- El usuario3 tenga accesos de lectura
+-- El usuario4 tenga accesos de lectura y escritura
+
+-- Para poder dar permisos de este tipo tenemos los comandos ACL (Access Control Lists) de HDFS
+-- Veamos los permisos de la tabla anterior, pero con el comando ACL:
+hdfs dfs -getfacl /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- Cambiemos los permisos, agregemos los cuatro permisos anteriores
+hdfs dfs -setfacl -R -m user:usuario1:r-x /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+hdfs dfs -setfacl -R -m user:usuario2:rwx /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+hdfs dfs -setfacl -R -m user:usuario3:r-x /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+hdfs dfs -setfacl -R -m user:usuario4:rwx /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- Verifiquemos
+hdfs dfs -getfacl /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- También podemos remover los permisos, por ejemplo, removamos los permisos al usuario2
+hdfs dfs -setfacl -x user:usuario2 /user/miusuario/bd/miusuario_test3/persona_parquet_snappy
+
+-- Con los comandos de "getfacl" y "setfacl" podemos administrar más fácilmente los accesos a tablas sobre HIVE

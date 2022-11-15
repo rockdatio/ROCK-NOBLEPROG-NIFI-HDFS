@@ -1,0 +1,245 @@
+/**
+ * @section Formatos de archivos
+ */
+
+-- Hasta ahora hemos trabajado con un formato de archivos de texto plano
+-- Este formato formalmente es llamado TEXTFILE
+-- El formato TEXTFILE es el peor formato que existe para procesamiento, es muy lento
+-- Existen 4 formatos de archivo:
+--
+-- - TEXTFILE: Formato de texto plano, bueno porque nos permite colocar con un "put" la data sobre HDFS, malo porque es muy lento al procesar (por ejemplo, para operaciones JOIN y GROUP BY)
+-- - PARQUET: Formato binario, bueno porque es el formato más rápido para procesamiento, malo porque en algunas versiones no se soporta el tipo "DATE".
+-- - ORC: Formato binario, bueno porque es el segundo formato más rápido para procesamiento y soportar tipos de datos DATE, malo porque no es compatible con otras herramientas como IMPALA.
+-- - AVRO: Formato binario, bueno porque permite tener un esquema dinámico que varia en el tiempo, malo porque tiene un procesamiento lento.
+
+-- ¿Qué formatos se utilizan en la vida real?
+-- Explicar el patrón de ingesta de datos
+
+-- Creación de la base de datos
+CREATE DATABASE MIUSUARIO_TEST3 LOCATION '/user/miusuario/bd/miusuario_test3';
+
+-- Creación de una tabla en TEXTFILE
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_TEXTFILE(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_textfile';
+
+-- Le cargamos datos
+LOAD DATA LOCAL INPATH '/dataset/persona.data' INTO TABLE MIUSUARIO_TEST3.PERSONA_TEXTFILE;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_TEXTFILE LIMIT 10;
+hdfs dfs -tail /user/miusuario/bd/miusuario_test3/persona_textfile/persona.data
+
+-- Creación de una tabla en PARQUET
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_PARQUET(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_parquet';
+
+-- Le cargamos datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_PARQUET
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_PARQUET LIMIT 10;
+
+-- Verificamos que se haya creado el archivo de datos
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_parquet/
+
+-- El archivo de datos tiene un formato PARQUET, si lo abrimos, veremos código binario
+hdfs dfs -tail /user/miusuario/bd/miusuario_test3/persona_parquet/000000_0
+
+-- Creación de una tabla en ORC
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_ORC(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO DATE,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+STORED AS ORC
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_orc';
+
+-- Le cargamos datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_ORC
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_ORC LIMIT 10;
+
+-- Verificamos que se haya creado el archivo de datos
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_orc/
+
+-- El archivo de datos tiene un formato ORC, si lo abrimos, veremos código binario
+hdfs dfs -tail /user/miusuario/bd/miusuario_test3/persona_orc/000000_0
+
+-- Avro necesita de un archivo de esquema
+-- En el archivo de esquema se coloca la estructura de la tabla
+-- Debemos subirlo a HDFS
+-- Creamos la carpeta en donde estará el archivo
+hdfs dfs -mkdir -p /user/miusuario/schema/miusuario_test3
+
+-- Subimos el archivo de esquema
+hdfs dfs -put /dataset/persona_avro.avsc /user/miusuario/schema/miusuario_test3
+
+-- Creación de una tabla en AVRO
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_AVRO
+STORED AS AVRO
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_avro'
+TBLPROPERTIES (
+'avro.schema.url'='hdfs:///user/miusuario/schema/miusuario_test3/persona_avro.avsc'
+);
+
+-- Le cargamos datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_AVRO
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_AVRO LIMIT 10;
+
+-- Verificamos que se haya creado el archivo de datos
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_avro/
+
+-- El archivo de datos tiene un formato AVRO, si lo abrimos, veremos código binario
+-- Esta vez abriremos con un "cat" para ver la cabecera del archivo
+hdfs dfs -cat /user/miusuario/bd/miusuario_test3/persona_avro/000000_0
+
+-- Si vemos las primeras líneas del archivo, encontraremos la estructura del archivo avro
+
+/**
+ * @section Compresión de datos
+ */
+
+-- Independientemente del formato de archivos, existe la compresión de datos
+-- La compresión de datos permite ahorrar espacio en disco duro, aunque perdemos algo de velocidad en el procesamiento
+-- Existen varios formatos de compresión, pero el que actualmente es estándar es SNAPPY
+-- SNAPPY permite tener una reducción significativa en el tamaño del archivo (entre el 20% al 80%), y reduce mínimamente la velocidad de procesamiento (entre el 5% al 10%)
+
+-- Dependiendo del tipo de formato, creamos una tabla comprimida de la siguiente manera
+
+-- Creación de tabla PARQUET con compresión SNAPPY
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_PARQUET_SNAPPY(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_parquet_snappy'
+TBLPROPERTIES ("parquet.compression"="SNAPPY");
+
+-- Para llenar los datos, ejecutamos las siguiente líneas
+-- Primero indicamos con estas dos líneas que el resultado del procesamiento será un comprimido
+-- Y que el tipo de compresión es SNAPPY
+SET hive.exec.compress.output=true;
+SET parquet.compression=SNAPPY;
+
+-- Ahora ejecutamos la sentencia de carga de datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_PARQUET_SNAPPY
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_PARQUET_SNAPPY LIMIT 10;
+
+-- Si comparamos los pesos del archivo sin comprimir y el comprimido, notaremos la reducción de tamaño
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_parquet/
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_parquet_snappy/
+
+-- Creación de tabla ORC con compresión SNAPPY
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_ORC_SNAPPY(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO DATE,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+STORED AS ORC
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_orc_snappy'
+TBLPROPERTIES ("orc.compression"="SNAPPY");
+
+-- Para llenar los datos, ejecutamos las siguiente líneas
+-- Primero indicamos con estas dos líneas que el resultado del procesamiento será un comprimido
+-- Y que el tipo de compresión es SNAPPY
+SET hive.exec.compress.output=true;
+SET orc.compression=SNAPPY;
+
+-- Ahora ejecutamos la sentencia de carga de datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_ORC_SNAPPY
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_ORC_SNAPPY LIMIT 10;
+
+-- Si comparamos los pesos del archivo sin comprimir y el comprimido, notaremos la reducción de tamaño
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_orc/
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_orc_snappy/
+
+-- Creación de una tabla en AVRO con compresión SNAPPY
+
+-- Creamos la carpeta en donde estará el archivo
+hdfs dfs -mkdir -p /user/miusuario/schema/miusuario_test3
+
+-- Subimos el archivo de esquema
+hdfs dfs -put /dataset/persona_avro_snappy.avsc /user/miusuario/schema/miusuario_test3
+
+-- Creamos la tabla
+CREATE TABLE MIUSUARIO_TEST3.PERSONA_AVRO_SNAPPY
+STORED AS AVRO
+LOCATION '/user/miusuario/bd/miusuario_test3/persona_avro_snappy'
+TBLPROPERTIES (
+'avro.schema.url'='hdfs:///user/miusuario/schema/miusuario_test3/persona_avro_snappy.avsc',
+'avro.output.codec'='snappy'
+);
+
+-- Para llenar los datos, ejecutamos las siguiente líneas
+-- Primero indicamos con estas dos líneas que el resultado del procesamiento será un comprimido
+-- Y que el tipo de compresión es SNAPPY
+SET hive.exec.compress.output=true;
+SET avro.output.codec=snappy;
+
+-- Ahora ejecutamos la sentencia de carga de datos
+INSERT OVERWRITE TABLE MIUSUARIO_TEST3.PERSONA_AVRO_SNAPPY
+SELECT * FROM  MIUSUARIO_TEST3.PERSONA_TEXTFILE
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_TEST3.PERSONA_AVRO_SNAPPY LIMIT 10;
+
+-- Si comparamos los pesos del archivo sin comprimir y el comprimido, notaremos la reducción de tamaño
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_avro/
+hdfs dfs -ls /user/miusuario/bd/miusuario_test3/persona_avro_snappy/

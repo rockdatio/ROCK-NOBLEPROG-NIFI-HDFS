@@ -1,0 +1,235 @@
+/**
+ * @section Procesamiento de datos
+ */
+
+-- Aprovechamos el procesamiento de datos para mostrar el patrón "TABLON"
+-- El patrón de "TABLON" consiste en crear tablas con registros enriquecidos
+-- Estas tablas están orientadas a ser "tablas intermedias" para otros procesos
+-- Estas tablas están localizadas en la capa "UNIVERSAL" de un DATALAKE
+-- Es común encontrar procesos implementados con JOIN en este patrón
+
+-- Creación de base de datos
+CREATE DATABASE MIUSUARIO_UNIVERSAL;
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES(
+ID_PERSONA STRING,
+NOMBRE_PERSONA STRING,
+EDAD_PERSONA INT,
+SALARIO_PERSONA DOUBLE,
+ID_EMPRESA STRING,
+NOMBRE_EMPRESA STRING,
+MONTO_TRANSACCION DOUBLE
+)
+PARTITIONED BY (FECHA_TRANSACCION STRING)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_universal/persona'
+TBLPROPERTIES ("parquet.compression"="SNAPPY");
+
+-- Implementación del proceso
+
+-- Limpiamos toda la tabla
+TRUNCATE TABLE MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES;
+
+-- Tuning de proceso
+-- Aún no sabemos cómo hacerlo
+
+-- Activamos el particionamiento dinámico
+SET hive.exec.dynamic.partition=true; 
+SET hive.exec.dynamic.partition.mode=nonstrict;
+
+-- Ejecutamos el proceso
+INSERT OVERWRITE TABLE MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES 
+PARTITION (FECHA_TRANSACCION) 
+SELECT
+T.ID_PERSONA,
+P.NOMBRE,
+CAST(P.EDAD AS INT),
+CAST(P.SALARIO AS DOUBLE),
+T.ID_EMPRESA,
+E.NOMBRE,
+CAST(T.MONTO AS DOUBLE),
+T.FECHA
+FROM MIUSUARIO_LANDING.TRANSACCION T
+JOIN MIUSUARIO_LANDING.PERSONA P ON T.ID_PERSONA = P.ID
+JOIN MIUSUARIO_LANDING.EMPRESA E ON T.ID_EMPRESA = E.ID;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES LIMIT 10;
+
+/**
+ * @section Tuning
+ */
+
+-- El tuneo consiste en encontrar la cantidad de recursos computacionales necesaria para que un proceso se ejecute
+-- Los recursos computacionales que debemos tunear son las CPUs y la memoria RAM
+-- Las CPUs son las que ejecutan los procesamientos, mientras mas CPUs, más paralelo el proceso
+-- La RAM permite que el archivo pueda ser volcado de disco duro a memoria, si separamos poca RAM, el archivo no entrará
+-- Para tunear los procesos en HIVE necesitamos definir al menos estos cuatro parámetros
+
+/**
+ * @section Número de mappers
+ */
+
+-- ¿Cuántos mappers elegir?
+-- El número de mappers es lo que paraleliza la ejecución del algoritmo
+-- Cada mapper recibe una porción del archivo que se procesa
+-- Para elegir el número de mappers debemos ver dos cosas:
+-- 
+-- - El tamaño de la tabla que se procesa
+-- - El tamaño de bloque de clúster
+-- 
+-- El número de mappers inicial recomendado será (Tamaño de tabla / tamaño de bloque)
+-- 
+-- Por ejemplo, si fuesemos a hacer un "count" con una tabla con las siguientes características:
+-- 
+-- Tamaño de la tabla: 1024 MB
+-- Tamaño del bloque de clúster: 128 MB
+--
+-- Podríamos colocar como número de mappers 1024/128 = 8
+-- De esa manera crearíamos 8 mappers, donde cada uno recibiría un pedazo del archivo
+-- Entonces, ¿es 8 el número de mappers ideal para procesar esta tabla?, la respuesta es depende
+-- "8" es el número de mappers inicial con el que trabajaremos
+-- Por medio de prueba y error iremos aumentando o disminuyendo este número para encontrar uno con el cual nuestro tiempo de procesamiento sea el esperado
+-- Generalmente los aumentos o disminuciones se hacen de 25% en 25% respecto a lo que actualmente se tiene.
+
+-- Parámetro para colocar el número de mappers
+SET mapreduce.job.maps=8;
+
+-- También es posible indicarle el número de mappers por medio de cortar el archivo
+-- Por ejemplo, si nuestro archivo pesa 1024 MB y queremos tener 8 mappers, necesitaremos cortes de 128 MB
+-- Indicamos que queremos cortes de 128 MB así (el valor está en bytes):
+SET mapreduce.input.fileinputformat.split.maxsize = 128000000;
+SET mapreduce.input.fileinputformat.split.minsize = 128000000;
+
+-- Recordemos que un mapper es una unidad de procesamiento
+-- Cada mappers que usemos le quitará vcpus al clúster
+-- ¿Cuántas vcpus le quita al clúster?, nosotros lo definimos
+-- Generalmente, cada mapper debe tener asignado 1, 2 o 4 vcpus
+-- Es un estándar trabajar con al menos 2 vcpus para cada mapper
+-- Lo indicamos con el siguiente parámetro
+SET mapreduce.map.cpu.vcores=2;
+
+/**
+ * @section Número de reducers
+ */
+
+-- Los reducers son los que juntan los resultados intermedios obtenidos por los mappers
+-- Cada reducer recibe una parte de los resultados intermedios procesados
+-- ¿Cuántos reducers elegir?, para esto debemos de saber:
+--
+-- - Tamaño del archivo que se procesa
+-- 
+-- Por defecto, cada reducer procesa 1 GB de datos
+-- Si el archivo que se procesa pesa 1024 MB, entonces se formarán 1 reducer
+-- Podemos modificar el tamaño de proceso de reducer, por ejemplo, si colocamos un valor de 256 MB, se deberán formar 4 reducers
+SET hive.exec.reducers.bytes.per.reducer=256000000;
+
+-- También es posible indicar el valor del número de reducers con el siguiente parámetro
+SET mapreduce.job.reduces=4;
+
+-- ¿Cómo elegir el número óptimo de reducers?, por medio de prueba y error
+-- El número que obtengamos anteriormente nos servirá como base, deberemos ir aumentándolo y disminuyéndolo para ver qué tan rápido se comporta nuestro proceso
+-- Generalmente los aumentos o disminuciones se hacen de 25% en 25% respecto a lo que actualmente se tiene.
+-- También, el número de reducers debe ser menor al número de mappers
+
+-- Recordemos que un reducer es una unidad de procesamiento
+-- Cada reducer que usemos le quitará vcpus al clúster
+-- ¿Cuántas vcpus le quita al clúster?, nosotros lo definimos
+-- Generalmente, cada reducer debe tener asignado 1, 2 o 4 vcpus
+-- Es un estándar trabajar con al menos 2 vcpus para cada reducer
+-- Lo indicamos con el siguiente parámetro
+SET mapreduce.reducer.cpu.vcores=2;
+
+/**
+ * @section Memoria para los mappers
+ */
+
+-- La memoria RAM es el espacio de memoria en donde se carga el archivo que se procesará
+-- Si ponemos poca memoria, el archivo no podrá entrar y se tendrá que usar memoria virtual (disco duro), lo cual hará el proceso más lento
+-- Debemos indicarle la cantidad de memoria RAM que necesitaremos para cada mapper
+-- Por ejemplo, imaginemos que nuestro archivo pesa 1024 MB y hemos decidido tener 8 mappers
+-- Eso quiere decir que cada mapper recibirá 1024 MB / 8 = 128 MB
+-- Por lo tanto cada mapper deberá tener una memoria asignada de 128 MB, lo indicamos así:
+SET mapreduce.map.memory.mb=128;
+
+/**
+ * @section Memoria para los reducers
+ */
+
+-- El tamaño de memoria de cada reducer puede ser complicado de calcular
+-- Por estándar se recomienda ver el peso total de los archivos, dividirlo entre el número de reducers y aumentarle un 10%
+-- Por ejemplo, imaginemos que nuestro archivo pesa 1024 MB y hemos decidido tener 4 reducers
+-- Eso quiere decir que cada reducer recibirá 1024 MB / 4 = 256 MB
+-- Al número anterior le sumamos el 10%: 256 MB * 1.10 = 281.6 MB = 282 MB
+SET mapreduce.reduce.memory.mb=282;
+
+/**
+ * @section Procesamiento de datos tuneado
+ */
+
+-- Implementaremos el proceso anterior tuneado
+
+-- Limpiamos toda la tabla
+TRUNCATE TABLE MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES;
+
+-- Activamos el particionamiento dinámico
+SET hive.exec.dynamic.partition=true; 
+SET hive.exec.dynamic.partition.mode=nonstrict;
+
+-- Tuning de proceso
+-- Averiguaremos los tamaños de tabla (hdfs dfs -du -s -s /ruta/de/mi/tabla)
+-- Tamaño de tabla "MIUSUARIO_LANDING.TRANSACCION": 900 MB
+-- Tamaño de tabla "MIUSUARIO_LANDING.PERSONA": 100 MB
+-- Tamaño de tabla "MIUSUARIO_LANDING.EMPRESA": 24 MB
+-- TAMAÑO TOTAL: 1024 MB
+-- Aplicaremos el tuning que hemos puesto de ejemplo
+SET mapreduce.job.maps=8;
+SET mapreduce.map.cpu.vcores=2;
+SET mapreduce.map.memory.mb=128;
+SET mapreduce.job.reduces=4;
+SET mapreduce.reducer.cpu.vcores=2;
+SET mapreduce.reduce.memory.mb=282;
+
+-- Ejecutamos el proceso
+INSERT OVERWRITE TABLE MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES 
+PARTITION (FECHA_TRANSACCION) 
+SELECT
+T.ID_PERSONA,
+P.NOMBRE,
+CAST(P.EDAD AS INT),
+CAST(P.SALARIO AS DOUBLE),
+T.ID_EMPRESA,
+E.NOMBRE,
+CAST(T.MONTO AS DOUBLE),
+T.FECHA
+FROM MIUSUARIO_LANDING.TRANSACCION T
+JOIN MIUSUARIO_LANDING.PERSONA P ON T.ID_PERSONA = P.ID
+JOIN MIUSUARIO_LANDING.EMPRESA E ON T.ID_EMPRESA = E.ID;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES LIMIT 10;
+
+/**
+ * @section Exportar datos de Hive a un CSV sobre Linux
+ */
+
+-- Es común que queramos exportar el resultado de nuestros procesamientos
+-- Podemos exportar los datos de una tabla de la siguiente manera
+
+-- Creamos la ruta LINUX donde aterrizarán los datos
+mkdir /home/miusuario/data
+
+-- Le damos permisos de escritura a nuestro home
+chmod 777 -R /home/miusuario
+
+-- Exportamos la data
+INSERT OVERWRITE LOCAL DIRECTORY '/home/miusuario/data' 
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' 
+SELECT * FROM MIUSUARIO_UNIVERSAL.TABLON_TRANSACCIONES WHERE EDAD_PERSONA > 30;
+
+-- Si listamos el contenido sobre LINUX, veremos nuestros archivos exportados
+ls -l /home/miusuario/data
+
+-- Si abrimos el archivo, veremos el contenido exportado
+cat /home/miusuario/data/000000_0

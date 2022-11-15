@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 docker rm -f sandbox-proxy 2>/dev/null
 docker run --name sandbox-proxy --network=cda \
--v /C:/workspace/nifi/cloudera/assets/nginx.conf:/etc/nginx/nginx.conf \
--v /C:/workspace/nifi/cloudera/sandbox/proxy/conf.d:/etc/nginx/conf.d \
--v /C:/workspace/nifi/cloudera/sandbox/proxy/conf.stream.d:/etc/nginx/conf.stream.d \
+-v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-hdfs/assets/nginx.conf:/etc/nginx/nginx.conf \
+-v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-hdfs/sandbox/proxy/conf.d:/etc/nginx/conf.d \
+-v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-hdfs/sandbox/proxy/conf.stream.d:/etc/nginx/conf.stream.d \
 -p 1080:1080 \
 -p 4200:4200 \
 -p 7777:7777 \
@@ -16,6 +16,7 @@ docker run --name sandbox-proxy --network=cda \
 -p 9088:9088 \
 -p 9089:9089 \
 -p 61080:61080 \
+-p 61888:61888 \
 -p 4040:4040 \
 -p 6080:6080 \
 -p 8042:8042 \
@@ -95,5 +96,4 @@ docker run --name sandbox-proxy --network=cda \
 -p 50095:50095 \
 -p 60000:60000 \
 -p 60080:60080 \
--p 61888:61888 \
 -d hortonworks/sandbox-proxy:1.0

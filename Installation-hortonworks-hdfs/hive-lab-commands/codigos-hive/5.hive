@@ -1,0 +1,196 @@
+/**
+ * @section Implementación del patrón "INGESTA BATCHERA"
+ */
+
+-- Implementaremos el patrón "INGESTA BATCHERA"
+-- Para la implementación de este patrón necesitaremos de dos bases de datos
+-- Una llamada "LANDING_TMP", en donde aterrizarán los datos en crudo, tal cual vienen de la fuente, en formato de texto plano
+-- Otra llamada "LANDING", en donde aterrizarán los datos en crudo, sin embargo aquí el formato del archivo cambiará por uno procesable (AVRO o PARQUET). También el único procesamiento que puede hacerse es el de eliminar cabeceras de archivos
+-- Para ambas bases de datos, todos los tipos de datos deben ser "STRING".
+-- También, aquí no distinguimos entre tablas "maestras" y tablas "deltas".
+-- Una tabla "maestra" es aquella tabla no particionada en la que cada día nos envían el archivo de datos completo
+-- Una tabla "delta" es aquella tabla particionada en la que cada día nos envían un archivo que contiene sólo las transacciones realizadas durante un día
+
+/**
+ * @section Creación de bases de datos
+ */
+
+-- Creamos las bases de datos
+CREATE DATABASE MIUSUARIO_LANDING_TMP;
+CREATE DATABASE MIUSUARIO_LANDING;
+
+/**
+ * @section Creación de tablas "LANDING_TMP"
+ */
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING_TMP.PERSONA(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD STRING,
+SALARIO STRING,
+ID_EMPRESA STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '/user/miusuario/bd/miusuario_landing_tmp/persona';
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING_TMP.EMPRESA(
+ID STRING,
+NOMBRE STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '/user/miusuario/bd/miusuario_landing_tmp/empresa';
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING_TMP.TRANSACCION(
+ID_PERSONA STRING,
+ID_EMPRESA STRING,
+MONTO STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '/user/miusuario/bd/miusuario_landing_tmp/transaccion';
+
+/**
+ * @section Creación de tablas "LANDING"
+ */
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING.PERSONA(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD STRING,
+SALARIO STRING,
+ID_EMPRESA STRING
+)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_landing/persona'
+TBLPROPERTIES ("parquet.compression"="SNAPPY");
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING.EMPRESA(
+ID STRING,
+NOMBRE STRING
+)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_landing/empresa'
+TBLPROPERTIES ("parquet.compression"="SNAPPY");
+
+-- Creación de tabla
+CREATE TABLE MIUSUARIO_LANDING.TRANSACCION(
+ID_PERSONA STRING,
+ID_EMPRESA STRING,
+MONTO STRING
+)
+PARTITIONED BY (FECHA STRING)
+STORED AS PARQUET
+LOCATION '/user/miusuario/bd/miusuario_landing/transaccion'
+TBLPROPERTIES ("parquet.compression"="SNAPPY");
+
+/**
+ * @section Procesamiento de datos para "PERSONA"
+ */
+
+-- Borrado de datos en LANDING_TMP
+hdfs dfs -rm -r -f /user/miusuario/bd/miusuario_landing_tmp/persona
+
+-- Subida de datos a LANDING_TMP
+hdfs dfs -put /dataset/persona.data /user/miusuario/bd/miusuario_landing_tmp/persona
+
+-- Subida de datos a LANDING
+INSERT OVERWRITE TABLE MIUSUARIO_LANDING.PERSONA
+SELECT * FROM  MIUSUARIO_LANDING_TMP.PERSONA
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_LANDING.PERSONA LIMIT 10;
+
+/**
+ * @section Procesamiento de datos para "EMPRESA"
+ */
+
+-- Borrado de datos en LANDING_TMP
+hdfs dfs -rm -r -f /user/miusuario/bd/miusuario_landing_tmp/empresa
+
+-- Subida de datos a LANDING_TMP
+hdfs dfs -put /dataset/empresa.data /user/miusuario/bd/miusuario_landing_tmp/empresa
+
+-- Subida de datos a LANDING
+INSERT OVERWRITE TABLE MIUSUARIO_LANDING.EMPRESA
+SELECT * FROM  MIUSUARIO_LANDING_TMP.EMPRESA
+WHERE ID != 'ID';
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_LANDING.EMPRESA LIMIT 10;
+
+/**
+ * @section Procesamiento de datos para "TRANSACCION", para la fecha "2018-01-21"
+ */
+
+-- Borrado de datos en LANDING_TMP
+hdfs dfs -rm -r -f /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING_TMP
+hdfs dfs -put /dataset/transacciones-2018-01-21.data /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING
+INSERT OVERWRITE TABLE MIUSUARIO_LANDING.TRANSACCION 
+PARTITION (FECHA='2018-01-21')
+SELECT * 
+FROM MIUSUARIO_LANDING_TMP.TRANSACCION;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_LANDING.TRANSACCION WHERE FECHA = '2018-01-21' LIMIT 10;
+
+/**
+ * @section Procesamiento de datos para "TRANSACCION", para la fecha "2018-01-22"
+ */
+
+-- Borrado de datos en LANDING_TMP
+hdfs dfs -rm -r -f /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING_TMP
+hdfs dfs -put /dataset/transacciones-2018-01-22.data /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING
+INSERT OVERWRITE TABLE MIUSUARIO_LANDING.TRANSACCION 
+PARTITION (FECHA='2018-01-22')
+SELECT * 
+FROM MIUSUARIO_LANDING_TMP.TRANSACCION;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_LANDING.TRANSACCION WHERE FECHA = '2018-01-22' LIMIT 10;
+
+/**
+ * @section Procesamiento de datos para "TRANSACCION", para la fecha "2018-01-23"
+ */
+
+-- Borrado de datos en LANDING_TMP
+hdfs dfs -rm -r -f /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING_TMP
+hdfs dfs -put /dataset/transacciones-2018-01-23.data /user/miusuario/bd/miusuario_landing_tmp/transaccion
+
+-- Subida de datos a LANDING
+INSERT OVERWRITE TABLE MIUSUARIO_LANDING.TRANSACCION 
+PARTITION (FECHA='2018-01-23')
+SELECT * 
+FROM MIUSUARIO_LANDING_TMP.TRANSACCION;
+
+-- Verificamos
+SELECT * FROM MIUSUARIO_LANDING.TRANSACCION WHERE FECHA = '2018-01-23' LIMIT 10;

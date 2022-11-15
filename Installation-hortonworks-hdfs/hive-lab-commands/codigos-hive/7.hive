@@ -1,0 +1,12 @@
+/**
+ * @section Ejecutando un script HIVE
+ */
+
+-- Para ejecutar un script en HIVE, implementamos nuestro script y escribimos
+beeline -u jdbc:hive2://localhost:10000 -f /ruta/a/mi/script.hive
+
+/**
+ * @section Ejecutando sobre HUE
+ */
+
+-- Entrar a la página de HUE y seleccionar la opción de script HIVE
