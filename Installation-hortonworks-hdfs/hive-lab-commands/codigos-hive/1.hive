@@ -18,7 +18,7 @@ hive
 -- En HIVE, listamos las bases de datos existentes
 SHOW DATABASES;
 
--- En HIVE, creamos una base de datos
+-- En HIVE, creamos una base de datos (MIUSUARIO) Usar DNI
 CREATE DATABASE MIUSUARIO_TEST;
 
 -- En HIVE, verificamos
@@ -50,18 +50,23 @@ SHOW TABLES IN MIUSUARIO_TEST;
 -- Se crean sobre HDFS, en la ruta "/user/hive/warehouse"
 
 -- En HDFS, listar el contenido de la carpetra "/user/hive/warehouse"
-hdfs dfs -ls /user/hive/warehouse
+-- hdfs dfs -ls /user/hive/warehouse
+hdfs dfs -ls /warehouse/tablespace
 
 -- Notamos que se ha creado la carpeta "/user/hive/warehouse/miusuario_test.db"
 -- También notemos que no importa que hemos escrito en HIVE en mayúsculas el nombre de la base de datos (MIUSUARIO_TEST), sobre HDFS la creará en minúsculas y le agregará el .db (miusuario_test.db)
 -- En HDFS, listar el contenido de la carpeta
-hdfs dfs -ls /user/hive/warehouse/miusuario_test.db
+hdfs dfs -ls /warehouse/tablespace/managed/hive/
+-- hdfs dfs -ls /user/hive/warehouse/miusuario_test.db
 
 -- Dentro podemos ver la carpeta "/user/hive/warehouse/miusuario_test.db/persona"
 -- En HDFS, listar el contenido de la carpeta
-hdfs dfs -ls /user/hive/warehouse/miusuario_test.db/persona
+hdfs dfs -put /tmp/data/dataset/persona.data /warehouse/tablespace/managed/hive/miusuario_test.db/persona/
+hdfs dfs -ls /warehouse/tablespace/managed/hive/miusuario_test.db/persona
+-- hdfs dfs -ls /user/hive/warehouse/miusuario_test.db/persona
 
 -- En HDFS, subir el archivo LINUX "/dataset/persona.data" a "/user/hive/warehouse/miusuario_test.db/persona"
+
 hdfs dfs -put /dataset/persona.data /user/hive/warehouse/miusuario_test.db/persona
 
 -- En HIVE, mostramos algunos registros de la tabla
@@ -85,13 +90,14 @@ DESC FORMATTED MIUSUARIO_TEST.PERSONA;
 
 -- Crearemos una base de datos llamada "MIUSUARIO_TEST2" sobre la ruta HDFS "/user/miusuario/bd"
 -- Creamos la ruta HDFS de la base de datos
+hdfs dfs -mkdir -p /user/root/workspace/datalake_dev/bronze/miusuario_test2
 hdfs dfs -mkdir -p /user/miusuario/bd/miusuario_test2
 
 -- Creamos la base de datos, apuntando a la ruta HDFS
-CREATE DATABASE MIUSUARIO_TEST2 LOCATION "/user/miusuario/bd/miusuario_test2";
+CREATE DATABASE MIUSUARIO_TEST2 LOCATION "/user/root/workspace/datalake_dev/bronze/miusuario_test2";
 
 -- Crear la ruta HDFS de la tabla
-hdfs dfs -mkdir -p /user/miusuario/bd/miusuario_test2/persona
+hdfs dfs -mkdir -p /user/root/workspace/datalake_dev/bronze/miusuario_test2/persona
 
 -- Crear la tabla sobre la ruta HDFS
 CREATE TABLE MIUSUARIO_TEST2.PERSONA(
@@ -108,14 +114,14 @@ ROW FORMAT DELIMITED
 FIELDS TERMINATED BY '|'
 LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '/user/miusuario/bd/miusuario_test2/persona';
+LOCATION '/user/root/workspace/datalake_dev/bronze/miusuario_test2/persona';
 
 -- Consultar la tabla
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
 
 -- Colocar el archivo de datos
 -- Podríamos hacerlo con un "put" de LINUX a HDFS, pero esta vez lo haremos con un comando propio de HIVE
-LOAD DATA LOCAL INPATH '/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
+LOAD DATA LOCAL INPATH '/tmp/data/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
 
 -- Consultar la tabla
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
@@ -125,7 +131,7 @@ DROP TABLE MIUSUARIO_TEST2.PERSONA;
 
 -- ¿Qué pasa con la ruta y el archivo HDFS cuando eliminamos una tabla?
 -- Revisemos la ruta donde estába la tabla
-hdfs dfs -ls /user/miusuario/bd/miusuario_test2
+hdfs dfs -ls /user/root/workspace/datalake_dev/bronze/miusuario_test2/
 
 -- Vemos que se ha borrado la carpeta y el archivo dentro de ella
 -- Cuando nosotros creamos una tabla, por defecto esta se crea como "INTERNAL"
@@ -146,7 +152,7 @@ ROW FORMAT DELIMITED
 FIELDS TERMINATED BY '|'
 LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '/user/miusuario/bd/miusuario_test2/persona';
+LOCATION '/user/root/workspace/datalake_dev/bronze/miusuario_test2/persona';
 
 -- Cargamos el archivo
 LOAD DATA LOCAL INPATH '/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
@@ -202,3 +208,29 @@ DROP TABLE IF EXISTS MI_BASE_DE_DATOS.MI_TABLA;
 
 -- Eliminar una base de datos si existe, si no existe, no lanzará un mensaje de error
 DROP DATABASE IF EXISTS MI_BASE_DE_DATOS;
+
+
+CREATE DATABASE 1311543_TEST;
+
+CREATE TABLE 1311543_TEST.employee(
+ID STRING,
+NOMBRE STRING,
+TELEFONO STRING,
+CORREO STRING,
+FECHA_INGRESO STRING,
+EDAD INT,
+SALARIO DOUBLE,
+ID_EMPRESA STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+INSERT INTO 1311543_TEST.employee VALUES 
+('13','Mari','51','M', 'mari@gmail.com',13,51.000,'M'),
+('13','Mari','51','M', 'mari@gmail.com' ,13,51.000,'M'),
+('13','Mari','51','M', 'mari@gmail.com' ,13,51.000,'M'),
+('13','Mari','51','M', 'mari@gmail.com' ,13,51.000,'M');
+
+hdfs dfs -ls /warehouse/tablespace/managed/hive/1311543_test.db/employee/

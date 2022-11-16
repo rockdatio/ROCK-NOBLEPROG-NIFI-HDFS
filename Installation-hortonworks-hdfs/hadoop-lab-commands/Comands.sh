@@ -83,6 +83,9 @@ hdfs dfs -chown usuario1:grupo1 /user/root/workspace/datalake_dev/landing/empres
 hdfs dfs -chmod 750 /user/root/workspace/datalake_dev/landing/empresa2.data
 hdfs dfs -ls /user/root/workspace/datalake_dev/landing/
 
+hdfs dfs -chown hive:hadoop /user/root/workspace/
+hdfs dfs -chmod -R 777 /user/root/workspace/
+
 
 # hive 
 select * from category;
