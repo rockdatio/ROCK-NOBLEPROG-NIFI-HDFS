@@ -82,6 +82,7 @@ SELECT * FROM MIUSUARIO_TEST.PERSONA LIMIT 10;
 -- Podemos ver una descripción de las columnas y sus tipos de datos
 DESC MIUSUARIO_TEST.PERSONA;
 
+
 -- También podemos ver una descripción más detallada de la tabla
 DESC FORMATTED MIUSUARIO_TEST.PERSONA;
 
