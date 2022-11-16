@@ -6,6 +6,7 @@ https://drive.google.com/drive/folders/1iW8rIvzzwKXWdsALGe52uV9-pc9NC4X-?usp=sha
 https://drive.google.com/drive/folders/1pPUDc0PhuNpurcn7pUiSaU2L0zc6gR8q?usp=share_link
 
 # HADOOP
+bash docker-deploy-hdp30.sh C:/Users/Nobleprog/Desktop/workspace/APACHE-NIFI-HDFS\ROCK-NOBLEPROG-NIFI-HDFS
 bash docker-deploy-hdp30.sh C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-hdfs
 docker ps
 docker ps -a
