@@ -79,15 +79,44 @@ hdfs dfs -D dfs.blocksize=1048576 -put /tmp/data/dataset/empresa.data /user/root
 
 # Permission
 su hdfs
+# Cambiar los dueños al archivo empresa2.data
 hdfs dfs -chown usuario1:grupo1 /user/root/workspace/datalake_dev/landing/empresa2.data
+# Cambiar los dueños recursivo desde la carpeta landing  
+hdfs dfs -chown -R hive:hadoop /user/root/workspace/datalake_dev/landing/
+
+# Otorgar permisos 750 al archivo empresa2.data
 hdfs dfs -chmod 750 /user/root/workspace/datalake_dev/landing/empresa2.data
+# Validar
+hdfs dfs -ls /user/root/workspace/datalake_dev/landing/
+# Permisos 777 recursivos a la carpeta landing /user/root/workspace/datalake_dev/landing/
+hdfs dfs -chmod -R 777 /user/root/workspace/datalake_dev/landing/
+# Validar
 hdfs dfs -ls /user/root/workspace/datalake_dev/landing/
 
 hdfs dfs -chown hive:hadoop /user/root/workspace/
 hdfs dfs -chmod -R 777 /user/root/workspace/
 
+# Permisos ACL
+hdfs dfs -setfacl -R -m user:usuarioA:rwx /user/root/workspace/datalake_dev/landing/empresa.data
 
-# hive 
-select * from category;
-select * from customer;
-SHOW CREATE TABLE customer;
+
+/user/root/workspace/{USERNAME}
+     /ejercicio1
+                carpeta1
+                        subcarpeta1
+                                    persona.data
+                        subcarpeta2
+                        subcarpeta3
+                carpeta2
+                        empresa.data
+                carpeta3
+                data1
+                      diabetes.csv (permisos: usuario5:grupoA 755)
+                      zipcodes.parquet (permisos 700)
+                data2 (permisos: recursivos usuario2:grupoK 777)
+                      2022-11-17
+                                diabetes.csv
+                      2022-11-16
+                                diabetes.csv
+                      2022-11-15
+                data3
