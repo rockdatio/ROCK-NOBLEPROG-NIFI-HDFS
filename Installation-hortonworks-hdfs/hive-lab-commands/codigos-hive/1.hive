@@ -43,13 +43,26 @@ FIELDS TERMINATED BY '|'
 LINES TERMINATED BY '\n'
 STORED AS TEXTFILE;
 
+-- En la sentencia de creación de la tabla HIVE, notamos que:
+-- - Con "ROW FORMAT DELIMITED", indicamos que nuestra tabla tendra un archivo cuyo contenido está delimitado
+-- - Con "FIELDS TERMINATED BY '|'", indicamos que nuestra tabla separa sus campos con el caracter "|"
+-- - Con "LINES TERMINATED BY '\n'", indicamos que cada registro está separado por "\n" (salto de línea, es decir ENTER)
+-- - Con "STORED AS TEXTFILE", indicamos que el FORMATO del archivo es del tipo TEXTFILE (texto plano, es decir si hacemos un "cat" sobre el archivo en HDFS encontraremos texto legible por un humano)
+-- - Dependiendo de la estructura de nuestro archivo, deberemos cambiar el separador de campos y registros, por ejemplo, en un archivo CSV el separador será ','
+
+-- Podemos ver una descripción de las columnas y sus tipos de datos
+DESC MIUSUARIO_TEST.PERSONA;
+
+-- También podemos ver una descripción más detallada de la tabla
+DESC FORMATTED MIUSUARIO_TEST.PERSONA;
+
 -- En HIVE, verificamos
 SHOW TABLES IN MIUSUARIO_TEST;
 
 -- ¿Dónde se crea la base de datos y la tabla?
--- Se crean sobre HDFS, en la ruta "/user/hive/warehouse"
+-- Se crean sobre HDFS, en la ruta "/warehouse/tablespace"
 
--- En HDFS, listar el contenido de la carpetra "/user/hive/warehouse"
+-- En HDFS, listar el contenido de la carpetra "/warehouse/tablespace"
 -- hdfs dfs -ls /user/hive/warehouse
 hdfs dfs -ls /warehouse/tablespace
 
@@ -61,30 +74,14 @@ hdfs dfs -ls /warehouse/tablespace/managed/hive/
 
 -- Dentro podemos ver la carpeta "/user/hive/warehouse/miusuario_test.db/persona"
 -- En HDFS, listar el contenido de la carpeta
-hdfs dfs -put /tmp/data/dataset/persona.data /warehouse/tablespace/managed/hive/miusuario_test.db/persona/
 hdfs dfs -ls /warehouse/tablespace/managed/hive/miusuario_test.db/persona
--- hdfs dfs -ls /user/hive/warehouse/miusuario_test.db/persona
 
+-- Ingestando usando HDFS hacia Hive
 -- En HDFS, subir el archivo LINUX "/dataset/persona.data" a "/user/hive/warehouse/miusuario_test.db/persona"
-
-hdfs dfs -put /dataset/persona.data /user/hive/warehouse/miusuario_test.db/persona
+hdfs dfs -put /tmp/data/dataset/persona.data /warehouse/tablespace/managed/hive/miusuario_test.db/persona/
 
 -- En HIVE, mostramos algunos registros de la tabla
 SELECT * FROM MIUSUARIO_TEST.PERSONA LIMIT 10;
-
--- En la sentencia de creación de la tabla HIVE, notamos que:
--- - Con "ROW FORMAT DELIMITED", indicamos que nuestra tabla tendra un archivo cuyo contenido está delimitado
--- - Con "FIELDS TERMINATED BY '|'", indicamos que nuestra tabla separa sus campos con el caracter "|"
--- - Con "LINES TERMINATED BY '\n'", indicamos que cada registro está separado por "\n" (salto de línea, es decir ENTER)
--- - Con "STORED AS TEXTFILE", indicamos que el FORMATO del archivo es del tipo TEXTFILE (texto plano, es decir si hacemos un "cat" sobre el archivo en HDFS encontraremos texto legible por un humano)
--- - Dependiendo de la estructura de nuestro archivo, deberemos cambiar el separador de campos y registros, por ejemplo, en un archivo CSV el separador será ','
-
--- Podemos ver una descripción de las columnas y sus tipos de datos
-DESC MIUSUARIO_TEST.PERSONA;
-
-
--- También podemos ver una descripción más detallada de la tabla
-DESC FORMATTED MIUSUARIO_TEST.PERSONA;
 
 -- Como hemos visto, por defecto HIVE crea sus bases de datos y sus tablas en la ruta HDFS "/user/hive/warehouse"
 -- Es posible que nosotros le indiquemos la ruta HDFS donde queremos que las creen
@@ -92,16 +89,17 @@ DESC FORMATTED MIUSUARIO_TEST.PERSONA;
 -- Crearemos una base de datos llamada "MIUSUARIO_TEST2" sobre la ruta HDFS "/user/miusuario/bd"
 -- Creamos la ruta HDFS de la base de datos
 hdfs dfs -mkdir -p /user/root/workspace/datalake_dev/bronze/miusuario_test2
-hdfs dfs -mkdir -p /user/miusuario/bd/miusuario_test2
 
 -- Creamos la base de datos, apuntando a la ruta HDFS
 CREATE DATABASE MIUSUARIO_TEST2 LOCATION "/user/root/workspace/datalake_dev/bronze/miusuario_test2";
+-- Describe
+DESC DATABASE MIUSUARIO_TEST2;
 
 -- Crear la ruta HDFS de la tabla
 hdfs dfs -mkdir -p /user/root/workspace/datalake_dev/bronze/miusuario_test2/persona
 
 -- Crear la tabla sobre la ruta HDFS
-CREATE TABLE MIUSUARIO_TEST2.PERSONA(
+CREATE MANAGED TABLE MIUSUARIO_TEST2.PERSONA(
 ID STRING,
 NOMBRE STRING,
 TELEFONO STRING,
@@ -117,6 +115,10 @@ LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
 LOCATION '/user/root/workspace/datalake_dev/bronze/miusuario_test2/persona';
 
+-- validamos donde se creó 
+hdfs dfs -ls /warehouse/tablespace/
+hdfs dfs -ls /warehouse/tablespace/external/hive/miusuario_test2.db/
+
 -- Consultar la tabla
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
 
@@ -124,7 +126,7 @@ SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
 -- Podríamos hacerlo con un "put" de LINUX a HDFS, pero esta vez lo haremos con un comando propio de HIVE
 LOAD DATA LOCAL INPATH '/tmp/data/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
 
--- Consultar la tabla
+-- Consultar la tabla y Hdfs
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
 
 -- Eliminar la tabla
@@ -133,6 +135,9 @@ DROP TABLE MIUSUARIO_TEST2.PERSONA;
 -- ¿Qué pasa con la ruta y el archivo HDFS cuando eliminamos una tabla?
 -- Revisemos la ruta donde estába la tabla
 hdfs dfs -ls /user/root/workspace/datalake_dev/bronze/miusuario_test2/
+hdfs dfs -ls /user/root/workspace/datalake_dev/bronze/miusuario_test2/persona
+-- que paso en hive
+hdfs dfs -ls /warehouse/tablespace/external/hive/miusuario_test2.db/
 
 -- Vemos que se ha borrado la carpeta y el archivo dentro de ella
 -- Cuando nosotros creamos una tabla, por defecto esta se crea como "INTERNAL"
@@ -156,7 +161,7 @@ STORED AS TEXTFILE
 LOCATION '/user/root/workspace/datalake_dev/bronze/miusuario_test2/persona';
 
 -- Cargamos el archivo
-LOAD DATA LOCAL INPATH '/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
+LOAD DATA LOCAL INPATH '/tmp/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
 
 -- Verificamos
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
@@ -166,12 +171,6 @@ DROP TABLE MIUSUARIO_TEST2.PERSONA;
 
 -- Verificamos
 SHOW TABLES IN MIUSUARIO_TEST2;
-
--- Verificamos en la ruta HDFS de la base de datos
-hdfs dfs -ls /user/miusuario/bd/miusuario_test2
-
--- Verificamos en la ruta HDFS de la tabla
-hdfs dfs -ls /user/miusuario/bd/miusuario_test2/persona
 
 /**
  * @section Consideraciones adicionales
