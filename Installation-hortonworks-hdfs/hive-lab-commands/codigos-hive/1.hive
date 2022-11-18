@@ -161,7 +161,7 @@ STORED AS TEXTFILE
 LOCATION '/user/root/workspace/datalake_dev/bronze/miusuario_test2/persona';
 
 -- Cargamos el archivo
-LOAD DATA LOCAL INPATH '/tmp/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
+LOAD DATA LOCAL INPATH '/tmp/data/dataset/persona.data' INTO TABLE MIUSUARIO_TEST2.PERSONA;
 
 -- Verificamos
 SELECT * FROM MIUSUARIO_TEST2.PERSONA LIMIT 10;
