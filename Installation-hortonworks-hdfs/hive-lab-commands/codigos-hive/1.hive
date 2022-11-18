@@ -26,7 +26,7 @@ SHOW DATABASES;
 
 -- En HIVE, también es posible crear bases de datos de la siguiente manera:
 -- CREATE SCHEMA MIUSUARIO_TEST;
-
+DESCRIBE database MIUSUARIO_TEST;
 -- En HIVE, creamos la tabla
 CREATE TABLE MIUSUARIO_TEST.PERSONA(
 ID STRING,
@@ -99,7 +99,7 @@ DESC DATABASE MIUSUARIO_TEST2;
 hdfs dfs -mkdir -p /user/root/workspace/datalake_dev/bronze/miusuario_test2/persona
 
 -- Crear la tabla sobre la ruta HDFS
-CREATE MANAGED TABLE MIUSUARIO_TEST2.PERSONA(
+CREATE TABLE MIUSUARIO_TEST2.PERSONA(
 ID STRING,
 NOMBRE STRING,
 TELEFONO STRING,
