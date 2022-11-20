@@ -40,19 +40,23 @@ docker exec -it cf055 bash
 
 
 # Kafka commands
-kafka-topics.bat --zookeeper localhost:2181 --list
-kafka-topics.bat --zookeeper localhost:2181 --topic rawbadi --create --replication-factor 1 --partitions 3
-kafka-topics.bat --bootstrap-server localhost:9092 --topic rawbadi --describe
+##############################################
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-topics.sh --zookeeper sandbox-hdf.hortonworks.com:2181 --list
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-topics.sh --zookeeper sandbox-hdf.hortonworks.com:2181 --topic grupo1 --create --partitions 3 --replication-factor 1
 
-kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic rawbadi --group test0208
-kafka-consumer-groups.bat --bootstrap-server localhost:9092 --list
-kafka-consumer-groups.bat --bootstrap-server localhost:9092 --describe --group test
-kafka-consumer-groups.bat --bootstrap-server localhost:9092 --describe --group spark-kafka-source-745f9e70-6ef9-4c4d-a5be-b5a97558fbbd--847792248-driver-0
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-console-producer.sh --broker-list sandbox-hdf.hortonworks.com:6667 --topic grupo1
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-console-consumer.sh --bootstrap-server sandbox-hdf.hortonworks.com:6667 --topic grupo1
 
 
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-console-consumer.sh --bootstrap-server sandbox-hdf.hortonworks.com:6667 --topic trucking_data_traffic
+/usr/hdf/3.1.2.0-7/kafka/bin/kafka-console-consumer.sh --bootstrap-server sandbox-hdf.hortonworks.com:6667 --topic trucking_data_truck_enriched
 
-kafka-console-consumer --topic rawbadi --bootstrap-server localhost:9092 --from-beginning --property print.key=true --property key.separator="-" --partition 0
-kafka-console-consumer --topic rawbadi --bootstrap-server localhost:9092 --from-beginning --partition 0
-kafka-console-consumer --topic rawbadi --bootstrap-server localhost:9092
+/var/lib/nifi/content_repository
+/var/lib/nifi/provenance_repository/
+/var/lib/nifi/database_repository/
+/var/lib/nifi/flowfile_repository/
 
-kafka-console-consumer --topic rawbadi2 --bootstrap-server localhost:9092
+archive  conf  content_repository  database_repository  flowfile_repository  provenance_repository  state  work
+
+cp /var/lib/nifi/provenance_repository/9504.prov.gz /tmp/data/
+
