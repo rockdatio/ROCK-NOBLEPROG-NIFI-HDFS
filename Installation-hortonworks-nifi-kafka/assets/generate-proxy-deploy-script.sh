@@ -201,7 +201,7 @@ version=$(docker images | grep hortonworks/sandbox-proxy  | awk '{print $2}');
 cat << EOF > sandbox/proxy/proxy-deploy.sh
 #!/usr/bin/env bash
 docker rm -f sandbox-proxy 2>/dev/null
-docker run --name sandbox-proxy --network=cda \\
+docker run --name sandbox-proxy-hdf --network=cda \\
 -v $absPath/assets/nginx.conf:/etc/nginx/nginx.conf \\
 -v $absPath/sandbox/proxy/conf.d:/etc/nginx/conf.d \\
 -v $absPath/sandbox/proxy/conf.stream.d:/etc/nginx/conf.stream.d \\

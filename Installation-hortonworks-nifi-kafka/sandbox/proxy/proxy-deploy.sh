@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 docker rm -f sandbox-proxy 2>/dev/null
-docker run --name sandbox-proxy --network=cda \
+docker run --name sandbox-proxy-hdf --network=cda \
 -v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka/assets/nginx.conf:/etc/nginx/nginx.conf \
 -v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka/sandbox/proxy/conf.d:/etc/nginx/conf.d \
 -v /C:/workspace/APACHE-NIFI-HDFS/ROCK-NOBLEPROG-NIFI-HDFS/Installation-hortonworks-nifi-kafka/sandbox/proxy/conf.stream.d:/etc/nginx/conf.stream.d \
