@@ -99,7 +99,6 @@ hdfs dfs -chmod -R 777 /user/root/workspace/
 # Permisos ACL
 hdfs dfs -setfacl -R -m user:usuarioA:rwx /user/root/workspace/datalake_dev/landing/empresa.data
 
-
 /user/root/workspace/{USERNAME}
      /ejercicio1
                 carpeta1
