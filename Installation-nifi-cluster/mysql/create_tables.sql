@@ -1,0 +1,8 @@
+CREATE TABLE AreaCnts (areaId INT NOT NULL, cnt BIGINT NOT NULL, PRIMARY KEY (areaId));
+CREATE TABLE person (personId VARCHAR NOT NULL, name VARCHAR NOT NULL, PRIMARY KEY (personId));
+INSERT INTO finlksql.AreaCnts VALUES (15, 20);
+INSERT INTO finlksql.AreaCnts VALUES (112, 202);
+INSERT INTO finlksql.AreaCnts VALUES (45, 2023);
+INSERT INTO finlksql.AreaCnts VALUES (5, 20342);
+INSERT INTO finlksql.AreaCnts VALUES (155, 2230);
+INSERT INTO finlksql.AreaCnts VALUES (156, 3420);

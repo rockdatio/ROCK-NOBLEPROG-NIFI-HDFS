@@ -111,6 +111,19 @@ services:
             #- ./nifi/conf:/opt/nifi/nifi-current/conf
         networks:
             - my_persistent_network
+    mysql:
+        hostname: mysqlhost
+        image: mysql:8.0.19
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            - MYSQL_USER=flink
+            - MYSQL_PASSWORD=secret
+            - MYSQL_DATABASE=flinksql
+            - MYSQL_RANDOM_ROOT_PASSWORD=yes
+        volumes:
+        - ./mysql:/docker-entrypoint-initdb.d
+        networks:
+        - my_persistent_network
 networks:
   my_persistent_network:
     driver: bridge
